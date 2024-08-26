@@ -11,9 +11,7 @@ import sys
 parser = argparse.ArgumentParser(description="Summarize any file.")
 parser.add_argument(
     'filename',
-    nargs='?',
-    type=str,
-    help='Path to the file to summarize. If not provided, input must be piped or provided via stdin.'
+    help='Path to the file to summarize.'
 )
 args = parser.parse_args()
 
@@ -22,11 +20,7 @@ if args.filename:
     if not file_text:
         print(f'File "{args.filename}" could not be loaded. Does the file exist?')
         sys.exit(1)
-else:
-    file_text = sys.stdin.read().decode('utf-8', errors='replace')
-    if not file_text:
-        print('Error: No input provided via stdin or filename.', file=sys.stderr)
-        sys.exit(1)
+
 
 load_dotenv()
 
