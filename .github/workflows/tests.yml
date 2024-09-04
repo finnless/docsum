@@ -27,3 +27,4 @@ jobs:
       - name: test declaration
         run: |
           python3 docsum.py docs/declaration
+          python3 docsum.py docs/news-mx.txt
