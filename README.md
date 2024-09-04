@@ -1,5 +1,4 @@
-# Document Summarizer - `docsum.py`
-
+# Document Summarizer - docsum ![](https://github.com/finnless/docsum/workflows/tests/badge.svg)
 ## Overview
 
 `docsum.py` is a Python script designed to summarize the content of any given file using a language model API. The script reads the text from the specified file, sends it to the Groq API, and prints a concise summary of the content.
