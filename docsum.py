@@ -120,7 +120,8 @@ def extract_text(filename):
         result = chardet.detect(f.read())
         charenc = result['encoding']
         with open(filename, 'r', encoding=charenc) as f:
-            content = fulltext.get(f, None, name=filename)
+            content = fulltext.get(f, None, name=filename, encoding=charenc)
+            # content = f.read()
 
     return content
 

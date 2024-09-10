@@ -10,6 +10,22 @@ class TestSplitDocs(unittest.TestCase):
         split_point = find_split_point(text, 15, separators)
         self.assertEqual(split_point, 9)  # The first newline is at index 9
 
+    def test_split_on_triple_newline(self):
+        text = "Part one.\n\n\nPart two.\n\n\nPart three."
+        result = split_docs(text, max_length=50)
+        self.assertEqual(len(result), 3)
+        self.assertTrue(result[0].endswith("Part one."))
+        self.assertTrue(result[1].endswith("Part two."))
+        self.assertTrue(result[2].startswith("Part three."))
+
+    def test_split_on_double_newline(self):
+        text = "Section A.\n\nSection B.\n\nSection C."
+        result = split_docs(text, max_length=50)
+        self.assertEqual(len(result), 3)
+        self.assertTrue(result[0].endswith("Section A."))
+        self.assertTrue(result[1].endswith("Section B."))
+        self.assertTrue(result[2].startswith("Section C."))
+
     def test_split_on_newline(self):
         text = "Line one.\nLine two.\nLine three."
         result = split_docs(text, max_length=15)  # Reduce the max_length to force a split
