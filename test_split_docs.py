@@ -25,7 +25,18 @@ class TestSplitDocs(unittest.TestCase):
         self.assertTrue(result[0].endswith("sentence two."))
         self.assertTrue(result[1].startswith("This is sentence three."))
 
+    def test_no_split_small_text(self):
+        text = "This text is under the limit."
+        result = split_docs(text, max_length=100)
+        self.assertEqual(len(result), 1)  # No split should occur
+        self.assertEqual(result[0], text)  # The text should remain unchanged
+
+    def test_no_separator_found(self):
+        text = "This text has no special separators and is very long" * 50
+        result = split_docs(text, max_length=100)
+        self.assertGreater(len(result), 1)  # The text should be split
+        self.assertTrue(all(len(chunk) <= 100 for chunk in result))  # All chunks should be within the max_length
+
 
 if __name__ == '__main__':
     unittest.main()
-

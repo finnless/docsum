@@ -105,10 +105,9 @@ def split_docs(text, max_length=10000):
         
         # Fallback to hard split at max_length if no valid split point is found
         print(f"Hard splitting at {max_length}: {subtext[:max_length]} | {subtext[max_length:]}")
-        return [subtext[:max_length].strip(), subtext[max_length:].strip()]
-    
-    return split_once(text)
+        return [subtext[:max_length].strip()] + split_once(subtext[max_length:].strip())
 
+    return split_once(text)
 
 
 if __name__ == "__main__":
