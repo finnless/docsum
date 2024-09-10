@@ -4,8 +4,10 @@ import chardet
 from dotenv import load_dotenv
 import fulltext
 from groq import Groq
+import magic
 import re
 import sys
+
 
 load_dotenv()
 
@@ -115,13 +117,26 @@ def extract_text(filename):
     """
     A function that extracts text given a filepath
     """
+    # Use python-magic to detect the MIME type based on file content
+    # This is to avoid sending text files to fulltext because it strips
+    # newlines which may be needed downstream
+    mime = magic.Magic(mime=True)
+    mime_type = mime.from_file(filename)
 
+    # Detect the encoding of the file
     with open(filename, 'rb') as f:
         result = chardet.detect(f.read())
         charenc = result['encoding']
+
+    # Process based on MIME type
+    if mime_type.startswith('text'):
+        # If the file is raw text
         with open(filename, 'r', encoding=charenc) as f:
-            content = fulltext.get(f, None, name=filename, encoding=charenc)
-            # content = f.read()
+            content = f.read()
+    else:
+        # If the file is not raw text
+        with open(filename, 'r', encoding=charenc) as f:
+            content = fulltext.get(f, None, name=filename)
 
     return content
 
