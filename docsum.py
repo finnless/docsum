@@ -1,5 +1,6 @@
 import os
 import argparse
+import chardet
 from dotenv import load_dotenv
 import fulltext
 from groq import Groq
@@ -110,6 +111,20 @@ def split_docs(text, max_length=10000):
     return split_once(text)
 
 
+def extract_text(filename):
+    """
+    A function that extracts text given a filepath
+    """
+
+    with open(filename, 'rb') as f:
+        result = chardet.detect(f.read())
+        charenc = result['encoding']
+        with open(filename, 'r', encoding=charenc) as f:
+            content = fulltext.get(f, None, name=filename)
+
+    return content
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Summarize any file.")
@@ -120,7 +135,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.filename:
-        file_text = fulltext.get(args.filename, None)
+        file_text = extract_text(args.filename)
         if not file_text:
             print(f'File "{args.filename}" could not be loaded. Does the file exist?')
             sys.exit(1)
