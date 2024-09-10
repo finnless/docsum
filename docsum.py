@@ -69,7 +69,7 @@ def split_docs(text, max_length=10000):
         list: A list of split text chunks.
     '''
     
-    separators = [r"\n", r"\. "]  # Simplified to handle newlines and periods
+    separators = [r"\n", r"\. "]  # Handling newlines and periods
 
     def split_once(subtext):
         """
@@ -86,12 +86,18 @@ def split_docs(text, max_length=10000):
         split_point = find_split_point(subtext, max_length, separators)
 
         if split_point is not None:
-            # If splitting at a newline, include the entire line after the newline in the first chunk
+            # Handle newlines
             if subtext[split_point] == '\n':
                 # Find the end of the next line
                 next_newline = subtext.find('\n', split_point + 1)
                 if next_newline != -1 and next_newline - split_point <= max_length:
-                    split_point = next_newline  # Extend the split to include the next line
+                    split_point = next_newline  # Extend to include the next line
+            
+            # Handle periods: Extend to the end of the sentence (after the period)
+            elif subtext[split_point:split_point+2] == '. ':
+                next_period = subtext.find('. ', split_point + 1)
+                if next_period != -1 and next_period - split_point <= max_length:
+                    split_point = next_period + 2  # Include the full sentence after period
 
             print(f"Splitting at index {split_point}: {subtext[:split_point]} | {subtext[split_point:]}")
             # Split at the best point found, return two chunks only
@@ -102,6 +108,7 @@ def split_docs(text, max_length=10000):
         return [subtext[:max_length].strip(), subtext[max_length:].strip()]
     
     return split_once(text)
+
 
 
 if __name__ == "__main__":

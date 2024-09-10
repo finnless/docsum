@@ -18,6 +18,13 @@ class TestSplitDocs(unittest.TestCase):
         self.assertTrue(result[0].endswith("Line two."))  # First chunk should end here
         self.assertTrue(result[1].startswith("Line three."))  # Second chunk should start here
 
+    def test_split_on_period(self):
+        text = "This is sentence one. This is sentence two. This is sentence three."
+        result = split_docs(text, max_length=40)
+        self.assertEqual(len(result), 2)
+        self.assertTrue(result[0].endswith("sentence two."))
+        self.assertTrue(result[1].startswith("This is sentence three."))
+
 
 if __name__ == '__main__':
     unittest.main()
