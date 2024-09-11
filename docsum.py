@@ -7,6 +7,8 @@ from groq import Groq
 import magic
 import re
 import sys
+from typing import List, Optional
+
 
 
 load_dotenv()
@@ -37,80 +39,139 @@ def summarize(text):
     return chat_completion.choices[0].message.content
 
 
-def find_split_point(subtext, max_length, separators):
-    """
-    Find the best split point in the text based on the given separators and max_length.
 
-    Parameters:
-        subtext (str): The input text to be split.
-        max_length (int): The maximum allowed length of each chunk.
-        separators (list): A list of regular expressions for valid split points.
+def _split_docs_with_separator(text: str, separator: str) -> List[str]:
+    """
+    Split the text using the given separator.
+
+    Args:
+        text (str): The text to split.
+        separator (str): The character or string used as the separator.
 
     Returns:
-        int: The index of the best split point, or None if no valid split point is found.
+        List[str]: A list of text chunks where each chunk includes the separator.
     """
-    for sep in separators:
-        matches = [m.start() for m in re.finditer(sep, subtext)]
-        valid_splits = [i for i in matches if i < max_length]
-        if valid_splits:
-            return valid_splits[-1]  # Return the last valid split point
+    # If the separator is not empty, split the text by the separator while keeping it.
+    if separator:
+        # re.split captures the separator in parentheses, so we can re-attach it to chunks.
+        splits = re.split(f"({re.escape(separator)})", text)
+        # Combine each chunk with the following separator.
+        return [splits[i] + splits[i + 1] for i in range(0, len(splits) - 1, 2)]
+    else:
+        # If no separator is provided, split by individual characters.
+        return list(text)
 
-    return None
+def _merge_splits(splits: List[str], chunk_size: int) -> List[str]:
+    """
+    Merge text splits into chunks of the specified size.
 
+    Args:
+        splits (List[str]): A list of text segments.
+        chunk_size (int): The maximum size of each chunk.
 
-def split_docs(text, max_length=10000):
-    '''
-    Split input text into smaller chunks so that an LLM can process. 
-    Splits around every 10,000 characters. Splits on what appears to be new sections 
-    by finding section separators in order of preference: newlines and periods.
-    
-    Parameters:
-        text (str): The input text to be split.
-        max_length (int): Maximum length of each chunk (default is 10,000 characters).
-    
     Returns:
-        list: A list of split text chunks.
-    '''
-    
-    separators = [r"\n", r"\. "]  # Handling newlines and periods
+        List[str]: A list of chunks, each of size less than or equal to the chunk size.
+    """
+    docs = []
+    current_doc = []  # Holds the current chunk
+    total_length = 0  # Tracks the total length of the current chunk
 
-    def split_once(subtext):
-        """
-        Split the text once, at the best split point, if possible.
-        Returns a list of one or two chunks.
-        """
-        print(f"Processing: {subtext[:30]}... (length: {len(subtext)})")
-        
-        if len(subtext) <= max_length:
-            print(f"Returning chunk: {subtext}")
-            return [subtext]
+    for s in splits:
+        s_len = len(s)
+        # If adding the next segment would exceed the chunk size, save the current chunk.
+        if total_length + s_len > chunk_size:
+            if current_doc:
+                # Join the current chunk and append it to the list of documents.
+                docs.append(''.join(current_doc))
+                current_doc = []  # Reset for the next chunk
+                total_length = 0  # Reset length counter
 
-        # Find the best place to split
-        split_point = find_split_point(subtext, max_length, separators)
+        # Add the current segment to the chunk
+        current_doc.append(s)
+        total_length += s_len
 
-        if split_point is not None:
-            # Handle newlines
-            if subtext[split_point] == '\n':
-                # Find the end of the next line
-                next_newline = subtext.find('\n', split_point + 1)
-                if next_newline != -1 and next_newline - split_point <= max_length:
-                    split_point = next_newline  # Extend to include the next line
-            
-            # Handle periods: Extend to the end of the sentence (after the period)
-            elif subtext[split_point:split_point+2] == '. ':
-                next_period = subtext.find('. ', split_point + 1)
-                if next_period != -1 and next_period - split_point <= max_length:
-                    split_point = next_period + 2  # Include the full sentence after period
+    # Add the last chunk if it exists
+    if current_doc:
+        docs.append(''.join(current_doc))
 
-            print(f"Splitting at index {split_point}: {subtext[:split_point]} | {subtext[split_point:]}")
-            # Split at the best point found, return two chunks only
-            return [subtext[:split_point].strip(), subtext[split_point:].strip()]
-        
-        # Fallback to hard split at max_length if no valid split point is found
-        print(f"Hard splitting at {max_length}: {subtext[:max_length]} | {subtext[max_length:]}")
-        return [subtext[:max_length].strip()] + split_once(subtext[max_length:].strip())
+    return docs
 
-    return split_once(text)
+def split_docs(text: str, chunk_size: int = 4000, separators: List[str] = None) -> List[str]:
+    """
+    Recursively split the text into chunks using the provided separators and chunk size.
+
+    Args:
+        text (str): The text to split.
+        chunk_size (int): The maximum size of each chunk.
+        separators (List[str]): A list of separators to split the text. The function will
+                                try the separators in order until the text is split.
+
+    Returns:
+        List[str]: A list of text chunks, each no longer than the specified chunk size.
+    Note: This function and its helpers draws upon the architecture of the
+        langchain-text-splitters module which I contribute to.
+    """
+    default_separators=[
+        "\n\n\n\n\n",
+        "\n\n\n\n",
+        "\n\n\n",
+        "\n\n",
+        "\n",
+        ". ",
+        " ",
+        ".",
+        ",",
+        "\u200b",  # Zero-width space
+        "\uff0c",  # Fullwidth comma
+        "\u3001",  # Ideographic comma
+        "\uff0e",  # Fullwidth full stop
+        "\u3002",  # Ideographic full stop
+        "",
+    ]
+
+    separators = separators or default_separators
+    final_chunks = []  # Holds the final chunks of text
+    separator = separators[-1]  # Default separator to use if none of the others work
+
+    # Try each separator in order to find one that can split the text
+    for i, sep in enumerate(separators):
+        if sep == "":  # If empty string is reached, just split by individual characters
+            separator = sep
+            break
+        if sep in text:  # If the separator exists in the text, use it
+            separator = sep
+            # Set new_separators to all separators after the current one, for recursive use
+            new_separators = separators[i + 1:]
+            break
+    else:
+        # If no separator is found, fall back to splitting by characters
+        new_separators = []
+
+    # Split the text using the chosen separator
+    splits = _split_docs_with_separator(text, separator)
+
+    good_splits = []  # Collect splits that are less than the chunk size
+    for s in splits:
+        # If a split is smaller than the chunk size, collect it
+        if len(s) < chunk_size:
+            good_splits.append(s)
+        else:
+            # If we have collected smaller chunks, merge and append them
+            if good_splits:
+                final_chunks.extend(_merge_splits(good_splits, chunk_size))
+                good_splits = []
+
+            # If the current split is too large, recursively split it using the next separators
+            if not new_separators:
+                final_chunks.append(s)  # If no more separators, add it as is
+            else:
+                final_chunks.extend(split_docs(s, chunk_size, new_separators))
+
+    # Merge and append any remaining small chunks
+    if good_splits:
+        final_chunks.extend(_merge_splits(good_splits, chunk_size))
+
+    return final_chunks
 
 
 def extract_text(filename):
