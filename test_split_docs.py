@@ -1,5 +1,5 @@
 import unittest
-from docsum import split_docs, extract_text, _split_docs_with_separator
+from docsum import split_docs, extract_text, _split_docs_with_separator, summarize
 
 class TestSplitDocs(unittest.TestCase):
 
@@ -117,6 +117,47 @@ class TestSplitDocs(unittest.TestCase):
         expected_chunks = ["A" * 7 + "..", "B" * 7]
         result = _split_docs_with_separator(text, separator)
         self.assertEqual(result, expected_chunks)
+
+
+class TestSummarizeFunction(unittest.TestCase):
+
+    def test_summarize_returns_text(self):
+        """
+        Test that the summarize function returns some text.
+
+        The input text is a simple sentence.
+        The expected output is a non-empty string.
+        """
+        text = "This is a simple test sentence to check the summarize function."
+        result = summarize(text)
+        self.assertIsInstance(result, str)
+        self.assertGreater(len(result), 0)
+
+    def test_summarize_with_empty_text(self):
+        """
+        Test that the summarize function returns some text even when the input is empty.
+
+        The input text is an empty string.
+        The expected output is a non-empty string.
+        """
+        text = ""
+        result = summarize(text)
+        self.assertIsInstance(result, str)
+        self.assertGreater(len(result), 0)
+
+    def test_summarize_with_long_text(self):
+        """
+        Test that the summarize function returns some text when the input is a long text.
+
+        The input text is a long string.
+        The expected output is a non-empty string.
+        """
+        text = "This is a long test sentence. " * 100
+        result = summarize(text)
+        self.assertIsInstance(result, str)
+        self.assertGreater(len(result), 0)
+
+
 
 if __name__ == '__main__':
     unittest.main()
