@@ -60,7 +60,7 @@ def summarize(text):
             },
             {
                 "role": "user",
-                "content": text,
+                "content": text[:30000],
             },
             {
                 "role": "assistant",
