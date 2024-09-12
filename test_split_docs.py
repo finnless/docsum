@@ -1,58 +1,73 @@
 import unittest
-from docsum import split_docs, find_split_point
-
+from docsum import split_docs, extract_text, _split_docs_with_separator
 
 class TestSplitDocs(unittest.TestCase):
 
-    def test_find_split_point(self):
-        text = "Line one.\nLine two.\nLine three."
-        separators = [r"\n"]
-        split_point = find_split_point(text, 15, separators)
-        self.assertEqual(split_point, 9)  # The first newline is at index 9
 
-    def test_split_on_triple_newline(self):
-        text = "Part one.\n\n\nPart two.\n\n\nPart three."
-        result = split_docs(text, max_length=50)
-        self.assertEqual(len(result), 3)
-        self.assertTrue(result[0].endswith("Part one."))
-        self.assertTrue(result[1].endswith("Part two."))
-        self.assertTrue(result[2].startswith("Part three."))
+    def test_split_docs_length_simple(self):
+        text = "A" * 5 + "B" * 5 + "C" * 5
+        chunks = split_docs(text, 5)
+        self.assertEqual(len(chunks), 3)
+        self.assertEqual(chunks[0], "AAAAA")
+        self.assertEqual(chunks[1], "BBBBB")
+        self.assertEqual(chunks[2], "CCCCC")
 
-    def test_split_on_double_newline(self):
-        text = "Section A.\n\nSection B.\n\nSection C."
-        result = split_docs(text, max_length=50)
-        self.assertEqual(len(result), 3)
-        self.assertTrue(result[0].endswith("Section A."))
-        self.assertTrue(result[1].endswith("Section B."))
-        self.assertTrue(result[2].startswith("Section C."))
+    # Test that split_docs returns a string of same length as input
+    def test_split_docs_length_hamlet(self):
+        hamlet = extract_text("docs/hamlet.txt")
+        hamlet_chunks = split_docs(hamlet, 20000)
+        # Join the chunks back together
+        joined_result = ''.join(hamlet_chunks)
+        # Check if the length of the joined result is the same as the input text
+        self.assertEqual(len(joined_result), len(hamlet))
 
-    def test_split_on_newline(self):
-        text = "Line one.\nLine two.\nLine three."
-        result = split_docs(text, max_length=15)  # Reduce the max_length to force a split
-        print(result)  # Debug output to see the chunks
-        self.assertEqual(len(result), 2)  # Expecting two chunks
-        self.assertTrue(result[0].endswith("Line two."))  # First chunk should end here
-        self.assertTrue(result[1].startswith("Line three."))  # Second chunk should start here
+    # test that split_docs on hamlet doesnt result in any chunks smaller than 100 characters
+    def test_split_docs_length_hamlet_min_length(self):
+        hamlet = extract_text("docs/hamlet.txt")
+        hamlet_chunks = split_docs(hamlet, 20000)
+        for chunk in hamlet_chunks:
+            self.assertGreater(len(chunk), 100)
+    
+    def test_split_docs_length_declaration(self):
+        declaration = extract_text("docs/declaration")
+        declaration_chunks = split_docs(declaration, 20000)
+        joined_result = ''.join(declaration_chunks)
+        self.assertEqual(len(joined_result), len(declaration))
+    
+    def test_split_docs_with_separator(self):
+        text = "A" * 7 + ". " + "B" * 7 + ". " + "C" * 7 + ". " + "D" * 7
+        separator = ". "
+        expected_chunks = ["A" * 7 + ". ", "B" * 7 + ". ", "C" * 7 + ". ", "D" * 7]
+        result = _split_docs_with_separator(text, separator)
+        self.assertEqual(result, expected_chunks)
 
-    def test_split_on_period(self):
-        text = "This is sentence one. This is sentence two. This is sentence three."
-        result = split_docs(text, max_length=40)
-        self.assertEqual(len(result), 2)
-        self.assertTrue(result[0].endswith("sentence two."))
-        self.assertTrue(result[1].startswith("This is sentence three."))
+    def test_split_docs_with_separator_no_separator(self):
+        text = "A" * 7 + "B" * 7 + "C" * 7 + "D" * 7
+        separator = ""
+        expected_chunks = list(text)
+        result = _split_docs_with_separator(text, separator)
+        self.assertEqual(result, expected_chunks)
 
-    def test_no_split_small_text(self):
-        text = "This text is under the limit."
-        result = split_docs(text, max_length=100)
-        self.assertEqual(len(result), 1)  # No split should occur
-        self.assertEqual(result[0], text)  # The text should remain unchanged
+    def test_split_docs_with_separator_empty_text(self):
+        text = ""
+        separator = ". "
+        expected_chunks = [""]
+        result = _split_docs_with_separator(text, separator)
+        self.assertEqual(result, expected_chunks)
 
-    def test_no_separator_found(self):
-        text = "This text has no special separators and is very long" * 50
-        result = split_docs(text, max_length=100)
-        self.assertGreater(len(result), 1)  # The text should be split
-        self.assertTrue(all(len(chunk) <= 100 for chunk in result))  # All chunks should be within the max_length
+    def test_split_docs_with_separator_multiple_separators(self):
+        text = "A" * 7 + " " + "B" * 7 + " " + "C" * 7 + " " + "D" * 7
+        separator = " "
+        expected_chunks = ["A" * 7 + " ", "B" * 7 + " ", "C" * 7 + " ", "D" * 7]
+        result = _split_docs_with_separator(text, separator)
+        self.assertEqual(result, expected_chunks)
 
+    def test_split_docs_with_separator_edge_case(self):
+        text = "A" * 7 + ".." + "B" * 7
+        separator = ".."
+        expected_chunks = ["A" * 7 + "..", "B" * 7]
+        result = _split_docs_with_separator(text, separator)
+        self.assertEqual(result, expected_chunks)
 
 if __name__ == '__main__':
     unittest.main()
