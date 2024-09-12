@@ -15,18 +15,18 @@ Before running the script, install the required dependencies using `pip`:
 pip install -r requirements.txt
 ```
 
-The `libmagic` library is required to run this script. If you encounter an error related to `libmagic`, you can follow these steps based on your operating system:
+The `libmagic` and `poppler` library is required to run this script. If you encounter an error related to `libmagic`, you can follow these steps based on your operating system:
 
 #### For Ubuntu/Debian:
 Install the `libmagic` library:
 ```bash
-sudo apt-get install libmagic1
+sudo apt-get install libmagic1 poppler-utils
 ```
 
 #### For macOS:
 Install `libmagic` using Homebrew:
 ```bash
-brew install libmagic
+brew install libmagic poppler
 ```
 
 ## Usage
