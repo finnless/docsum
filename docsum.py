@@ -7,6 +7,7 @@ from groq import Groq
 import magic
 import re
 import sys
+import time
 from typing import List, Optional
 
 
@@ -264,6 +265,8 @@ if __name__ == "__main__":
         # Summarize each chunk
         chunk_summaries = []
         for i, chunk in enumerate(chunks, 1):
+            # Sleep for a short duration to avoid hitting the rate limit
+            time.sleep(3)  # Adjust the duration as necessary based on the API's rate limit
             print(f'Chunk {i}/{len(chunks)}')
             summary = summarize(chunk)
             print(summary)
