@@ -275,7 +275,9 @@ if __name__ == "__main__":
         final_summary = summarize(joined_summaries)
         
         # Print the final summary
+        print("\nFinal Summary:\n")
         print(final_summary)
 
     else:
+        print("\nFinal Summary:\n")
         print(summarize(file_text))
