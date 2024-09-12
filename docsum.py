@@ -26,7 +26,9 @@ def summarize(text):
             },
             {
                 "role": "user",
-                "content": text,
+                # Limit the text to 30000 characters to avoid exceeding the token limit in case
+                # previous steps have added too much text.
+                "content": text[:30000],
             },
             {
                 "role": "assistant",
