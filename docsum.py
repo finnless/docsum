@@ -100,6 +100,34 @@ def _merge_splits(splits: List[str], chunk_size: int) -> List[str]:
 
     return docs
 
+def _merge_small_chunks(chunks: List[str], chunk_size: int) -> List[str]:
+    """
+    Merge smaller chunks with the previous chunk if the combined size is within the chunk size limit.
+    Note: Kind of ugly, but hopefully it works.
+
+    Args:
+        chunks (List[str]): A list of text chunks.
+        chunk_size (int): The maximum size of each chunk.
+
+    Returns:
+        List[str]: A list of merged chunks.
+    """
+    merged_chunks = []
+    current_chunk = ""
+
+    for chunk in chunks:
+        if len(current_chunk) + len(chunk) <= chunk_size:
+            current_chunk += chunk
+        else:
+            if current_chunk:
+                merged_chunks.append(current_chunk)
+            current_chunk = chunk
+
+    if current_chunk:
+        merged_chunks.append(current_chunk)
+
+    return merged_chunks
+
 def split_docs(text: str, chunk_size: int = 4000, separators: List[str] = None) -> List[str]:
     """
     Recursively split the text into chunks using the provided separators and chunk size.
@@ -174,6 +202,9 @@ def split_docs(text: str, chunk_size: int = 4000, separators: List[str] = None) 
     # Merge and append any remaining small chunks
     if good_splits:
         final_chunks.extend(_merge_splits(good_splits, chunk_size))
+
+    # Post-process to merge small chunks
+    final_chunks = _merge_small_chunks(final_chunks, chunk_size)
 
     return final_chunks
 
