@@ -286,32 +286,33 @@ if __name__ == "__main__":
             print(f'File "{args.filename}" could not be loaded. Does the file exist?')
             sys.exit(1)
 
-    if len(file_text) > 20000:
-        # Split the document into chunks
-        chunks = split_docs(file_text, chunk_size=10000)
-        
-        # Print the number of chunks
-        print(f'Number of chunks: {len(chunks)}')
-        
-        # Summarize each chunk
-        chunk_summaries = []
-        for i, chunk in enumerate(chunks, 1):
-            print(f'Chunk {i}/{len(chunks)}')
-            summary = summarize(chunk)
-            print(summary)
-            chunk_summaries.append(summary)
-        
-        # Join the summaries of each chunk
-        joined_summaries = " ".join(chunk_summaries)
-        print(f'Size of joined summaries: {len(joined_summaries)} characters')
-        
-        # Summarize the joined summaries
-        final_summary = summarize(joined_summaries)
-        
-        # Print the final summary
-        print("\nFinal Summary:\n")
-        print(final_summary)
+    def recursive_summarize(text):
+        if len(text) > 20000:
+            # Split the document into chunks
+            chunks = split_docs(text, chunk_size=20000)
+            
+            # Print the number of chunks
+            print(f'Number of chunks: {len(chunks)}')
+            
+            # Summarize each chunk
+            chunk_summaries = []
+            for i, chunk in enumerate(chunks, 1):
+                print(f'Chunk {i}/{len(chunks)}')
+                summary = summarize(chunk)
+                print(summary)
+                chunk_summaries.append(summary)
+            
+            # Join the summaries of each chunk
+            joined_summaries = " ".join(chunk_summaries)
+            print(f'Size of joined summaries: {len(joined_summaries)} characters')
+            
+            # Recursively summarize the joined summaries if still too large
+            return recursive_summarize(joined_summaries)
+        else:
+            return summarize(text)
 
-    else:
-        print("\nFinal Summary:\n")
-        print(summarize(file_text))
+    final_summary = recursive_summarize(file_text)
+    
+    # Print the final summary
+    print("\nFinal Summary:\n")
+    print(final_summary)
