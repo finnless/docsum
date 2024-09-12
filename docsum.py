@@ -3,7 +3,7 @@ import argparse
 import chardet
 from dotenv import load_dotenv
 import fulltext
-from groq import Groq, RateLimitError
+from groq import Groq, RateLimitError, BadRequestError
 import magic
 import re
 import random
@@ -25,7 +25,7 @@ def retry_with_exponential_backoff(
     exponential_base: float = 2,
     jitter: bool = True,
     max_retries: int = 10,
-    errors: tuple = (RateLimitError,),
+    errors: tuple = (RateLimitError, BadRequestError),
 ):
     """Retry a function with exponential backoff."""
  
@@ -60,7 +60,7 @@ def summarize(text):
             },
             {
                 "role": "user",
-                "content": text[:30000],
+                "content": text[:20000],
             },
             {
                 "role": "assistant",
