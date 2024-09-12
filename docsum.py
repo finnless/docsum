@@ -56,7 +56,11 @@ def _split_docs_with_separator(text: str, separator: str) -> List[str]:
         # re.split captures the separator in parentheses, so we can re-attach it to chunks.
         splits = re.split(f"({re.escape(separator)})", text)
         # Combine each chunk with the following separator.
-        return [splits[i] + splits[i + 1] for i in range(0, len(splits) - 1, 2)]
+        chunks = [splits[i] + splits[i + 1] for i in range(0, len(splits) - 1, 2)]
+        # If there's an odd number of splits, add the last chunk
+        if len(splits) % 2 != 0:
+            chunks.append(splits[-1])
+        return chunks
     else:
         # If no separator is provided, split by individual characters.
         return list(text)
