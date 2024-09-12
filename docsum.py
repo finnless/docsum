@@ -3,9 +3,10 @@ import argparse
 import chardet
 from dotenv import load_dotenv
 import fulltext
-from groq import Groq
+from groq import Groq, RateLimitError
 import magic
 import re
+import random
 import sys
 import time
 from typing import List, Optional
@@ -18,8 +19,40 @@ client = Groq(
     api_key=os.environ.get("GROQ_API_KEY"),
 )
 
+def retry_with_exponential_backoff(
+    func,
+    initial_delay: float = 1,
+    exponential_base: float = 2,
+    jitter: bool = True,
+    max_retries: int = 10,
+    errors: tuple = (RateLimitError,),
+):
+    """Retry a function with exponential backoff."""
+ 
+    def wrapper(*args, **kwargs):
+        num_retries = 0
+        delay = initial_delay
+ 
+        while True:
+            try:
+                return func(*args, **kwargs)
+            except errors as e:
+                num_retries += 1
+                if num_retries > max_retries:
+                    raise Exception(f"Maximum number of retries ({max_retries}) exceeded.")
+                delay *= exponential_base * (1 + jitter * random.random())
+                time.sleep(delay)
+            except Exception as e:
+                raise e
+ 
+    return wrapper
+
+@retry_with_exponential_backoff
+def completions_with_backoff(**kwargs):
+    return client.chat.completions.create(**kwargs)
+
 def summarize(text):
-    chat_completion = client.chat.completions.create(
+    chat_completion = completions_with_backoff(
         messages=[
             {
                 "role": "system",
@@ -27,9 +60,7 @@ def summarize(text):
             },
             {
                 "role": "user",
-                # Limit the text to 30000 characters to avoid exceeding the token limit in case
-                # previous steps have added too much text.
-                "content": text[:30000],
+                "content": text,
             },
             {
                 "role": "assistant",
@@ -265,8 +296,6 @@ if __name__ == "__main__":
         # Summarize each chunk
         chunk_summaries = []
         for i, chunk in enumerate(chunks, 1):
-            # Sleep for a short duration to avoid hitting the rate limit
-            time.sleep(3)  # Adjust the duration as necessary based on the API's rate limit
             print(f'Chunk {i}/{len(chunks)}')
             summary = summarize(chunk)
             print(summary)
