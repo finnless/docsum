@@ -256,7 +256,7 @@ if __name__ == "__main__":
 
     if len(file_text) > 20000:
         # Split the document into chunks
-        chunks = split_docs(file_text, chunk_size=20000)
+        chunks = split_docs(file_text, chunk_size=10000)
         
         # Print the number of chunks
         print(f'Number of chunks: {len(chunks)}')
