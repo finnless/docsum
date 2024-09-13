@@ -11,10 +11,10 @@ import sys
 import time
 from typing import List, Optional
 
-
-
+# Load environment variables from a .env file
 load_dotenv()
 
+# Initialize the Groq client with the API key from environment variables
 client = Groq(
     api_key=os.environ.get("GROQ_API_KEY"),
 )
@@ -25,14 +25,26 @@ def retry_with_exponential_backoff(
     exponential_base: float = 2,
     jitter: bool = True,
     max_retries: int = 10,
-    errors: tuple = (RateLimitError),
+    errors: tuple = (RateLimitError,),
 ):
-    """Retry a function with exponential backoff."""
- 
+    """
+    Retry a function with exponential backoff.
+
+    Args:
+        func (callable): The function to retry.
+        initial_delay (float): The initial delay before retrying.
+        exponential_base (float): The base for the exponential backoff.
+        jitter (bool): Whether to add randomness to the delay.
+        max_retries (int): The maximum number of retries.
+        errors (tuple): The exceptions to catch for retrying.
+
+    Returns:
+        callable: A wrapped function that retries with exponential backoff.
+    """
     def wrapper(*args, **kwargs):
         num_retries = 0
         delay = initial_delay
- 
+
         while True:
             try:
                 return func(*args, **kwargs)
@@ -44,20 +56,38 @@ def retry_with_exponential_backoff(
                 time.sleep(delay)
             except Exception as e:
                 raise e
- 
+
     return wrapper
 
 @retry_with_exponential_backoff
 def completions_with_backoff(**kwargs):
+    """
+    Call the Groq API to create chat completions with retry logic.
+
+    Args:
+        **kwargs: Arbitrary keyword arguments for the API call.
+
+    Returns:
+        dict: The API response.
+    """
     return client.chat.completions.create(**kwargs)
 
-def summarize(text):
+def summarize(text: str) -> str:
+    """
+    Summarize the given text using the Groq API.
+
+    Args:
+        text (str): The text to summarize.
+
+    Returns:
+        str: The summary of the text.
+    """
     try:
         chat_completion = completions_with_backoff(
             messages=[
                 {
                     "role": "system",
-                    "content": "Please summarize the following text in a paragraphs.",
+                    "content": "Please summarize the following text in a paragraph.",
                 },
                 {
                     "role": "user",
@@ -274,7 +304,17 @@ def extract_text(filename):
 
     return content
 
-def recursive_summarize(text, chunk_size=10000):
+def recursive_summarize(text: str, chunk_size: int = 10000) -> str:
+    """
+    Recursively summarize the given text if it exceeds the specified chunk size.
+
+    Args:
+        text (str): The text to summarize.
+        chunk_size (int): The maximum size of each chunk. Defaults to 10000.
+
+    Returns:
+        str: The summarized text.
+    """
     if len(text) > chunk_size:
         # Split the document into chunks
         chunks = split_docs(text, chunk_size=chunk_size)
