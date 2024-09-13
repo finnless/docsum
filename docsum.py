@@ -274,10 +274,10 @@ def extract_text(filename):
 
     return content
 
-def recursive_summarize(text):
-    if len(text) > 20000:
+def recursive_summarize(text, chunk_size=10000):
+    if len(text) > chunk_size:
         # Split the document into chunks
-        chunks = split_docs(text, chunk_size=20000)
+        chunks = split_docs(text, chunk_size=chunk_size)
         
         # Print the number of chunks
         print(f'Number of chunks: {len(chunks)}')
