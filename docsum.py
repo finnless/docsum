@@ -25,7 +25,7 @@ def retry_with_exponential_backoff(
     exponential_base: float = 2,
     jitter: bool = True,
     max_retries: int = 10,
-    errors: tuple = (RateLimitError, BadRequestError),
+    errors: tuple = (RateLimitError),
 ):
     """Retry a function with exponential backoff."""
  
@@ -52,23 +52,27 @@ def completions_with_backoff(**kwargs):
     return client.chat.completions.create(**kwargs)
 
 def summarize(text):
-    chat_completion = completions_with_backoff(
-        messages=[
-            {
-                "role": "system",
-                "content": "Please summarize the following text in a paragraphs.",
-            },
-            {
-                "role": "user",
-                "content": text[:20000],
-            },
-            {
-                "role": "assistant",
-                "content": "Here is a summary of the text:\n\n",
-            },
-        ],
-        model="llama3-8b-8192",
-    )
+    try:
+        chat_completion = completions_with_backoff(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Please summarize the following text in a paragraphs.",
+                },
+                {
+                    "role": "user",
+                    "content": text[:20000],
+                },
+                {
+                    "role": "assistant",
+                    "content": "Here is a summary of the text:\n\n",
+                },
+            ],
+            model="llama3-8b-8192",
+        )
+    except BadRequestError as e:
+        print(f"Error: {e}")
+        print('length of text', len(text))
 
     return chat_completion.choices[0].message.content
 
